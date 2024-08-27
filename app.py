@@ -14,8 +14,8 @@ def get_ai_recommendations(user_input):
     }
     payload = {
         "model": "togethercomputer/llama-2-70b-chat",
-        "prompt": f"Basado en la siguiente información: {user_input}, recomienda 3 colegios en el departamento de Guatemala que se ajusten a estos criterios. Proporciona una breve descripción de cada colegio, su ubicación específica dentro del departamento y por qué lo recomiendas.",
-        "max_tokens": 600,
+        "prompt": f"Basado en la siguiente información: {user_input}, recomienda 3 colegios en el departamento de Guatemala que se ajusten a estos criterios. Proporciona una breve descripción de cada colegio, su ubicación específica dentro del departamento, su orientación religiosa (si aplica) y por qué lo recomiendas.",
+        "max_tokens": 700,
         "temperature": 0.7,
     }
     response = requests.post(url, headers=headers, json=payload)
@@ -44,6 +44,17 @@ presupuesto = st.slider("Presupuesto anual (en Quetzales):", 5000, 100000, 25000
 ubicacion = st.text_input("Ubicación preferida en el departamento de Guatemala (ej. Ciudad de Guatemala, Mixco, Villa Nueva, etc.):")
 bilingue = st.checkbox("¿Buscas un colegio bilingüe?")
 transporte = st.checkbox("¿Necesitas servicio de transporte escolar?")
+religion = st.selectbox("Orientación religiosa preferida:", [
+    "No es un factor importante",
+    "Laico (sin orientación religiosa)",
+    "Católico",
+    "Evangélico",
+    "Otro cristiano",
+    "Judío",
+    "Otro"
+])
+if religion == "Otro":
+    otra_religion = st.text_input("Especifica la orientación religiosa:")
 actividades_extra = st.multiselect("Actividades extracurriculares de interés:", 
                                    ["Deportes", "Arte", "Música", "Tecnología", "Idiomas adicionales", "Otro"])
 
@@ -55,6 +66,7 @@ if st.button("Buscar Colegios"):
     Ubicación: {ubicacion}
     Bilingüe: {'Sí' if bilingue else 'No'}
     Transporte escolar: {'Sí' if transporte else 'No'}
+    Orientación religiosa: {religion if religion != "Otro" else otra_religion}
     Actividades extracurriculares: {', '.join(actividades_extra)}
     """
     
@@ -65,6 +77,8 @@ if st.button("Buscar Colegios"):
     
     with st.spinner("Buscando información adicional..."):
         search_query = f"Mejores colegios en {ubicacion}, departamento de Guatemala para estudiantes de {edad} años"
+        if religion != "No es un factor importante":
+            search_query += f" {religion}"
         search_results = search_schools(search_query)
         
         st.subheader("Resultados de búsqueda adicionales:")
