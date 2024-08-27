@@ -6,6 +6,14 @@ import json
 TOGETHER_API_KEY = st.secrets["TOGETHER_API_KEY"]
 SERPER_API_KEY = st.secrets["SERPER_API_KEY"]
 
+# Lista de municipios del departamento de Guatemala
+MUNICIPIOS = [
+    "Guatemala", "Santa Catarina Pinula", "San José Pinula", "San José del Golfo", 
+    "Palencia", "Chinautla", "San Pedro Ayampuc", "Mixco", "San Pedro Sacatepéquez", 
+    "San Juan Sacatepéquez", "San Raymundo", "Chuarrancho", "Fraijanes", "Amatitlán", 
+    "Villa Nueva", "Villa Canales", "San Miguel Petapa"
+]
+
 def get_ai_recommendations(user_input):
     url = "https://api.together.xyz/inference"
     headers = {
@@ -14,8 +22,8 @@ def get_ai_recommendations(user_input):
     }
     payload = {
         "model": "togethercomputer/llama-2-70b-chat",
-        "prompt": f"Basado en la siguiente información: {user_input}, recomienda 3 colegios en el departamento de Guatemala que se ajusten a estos criterios. Proporciona una breve descripción de cada colegio, su ubicación específica dentro del departamento, su orientación religiosa (si aplica) y por qué lo recomiendas.",
-        "max_tokens": 700,
+        "prompt": f"Basado en la siguiente información: {user_input}, recomienda 3 colegios en el departamento de Guatemala que se ajusten a estos criterios. Presta especial atención a la ubicación preferida y proporciona opciones cercanas o en esa área. Para cada colegio, proporciona una breve descripción, su ubicación específica dentro del departamento, su orientación religiosa (si aplica), y por qué lo recomiendas.",
+        "max_tokens": 800,
         "temperature": 0.7,
     }
     response = requests.post(url, headers=headers, json=payload)
@@ -41,7 +49,19 @@ st.write("Por favor, responde las siguientes preguntas para ayudarte a encontrar
 sexo = st.selectbox("Sexo del estudiante:", ["Masculino", "Femenino"])
 edad = st.number_input("Edad del estudiante:", min_value=3, max_value=18, value=6)
 presupuesto = st.slider("Presupuesto anual (en Quetzales):", 5000, 100000, 25000, step=1000)
-ubicacion = st.text_input("Ubicación preferida en el departamento de Guatemala (ej. Ciudad de Guatemala, Mixco, Villa Nueva, etc.):")
+
+# Mejora en la selección de ubicación
+ubicacion_tipo = st.radio("Tipo de ubicación:", ["Municipio específico", "Área general"])
+if ubicacion_tipo == "Municipio específico":
+    ubicacion = st.selectbox("Selecciona el municipio:", MUNICIPIOS)
+else:
+    ubicacion = st.text_input("Describe el área general (ej. 'zona 10', 'cerca de Carretera a El Salvador', etc.):")
+
+# Opción para especificar múltiples ubicaciones
+otras_ubicaciones = st.multiselect("Otras ubicaciones de interés (opcional):", MUNICIPIOS)
+
+distancia_maxima = st.slider("Distancia máxima aceptable (en km):", 0, 50, 10)
+
 bilingue = st.checkbox("¿Buscas un colegio bilingüe?")
 transporte = st.checkbox("¿Necesitas servicio de transporte escolar?")
 religion = st.selectbox("Orientación religiosa preferida:", [
@@ -59,11 +79,14 @@ actividades_extra = st.multiselect("Actividades extracurriculares de interés:",
                                    ["Deportes", "Arte", "Música", "Tecnología", "Idiomas adicionales", "Otro"])
 
 if st.button("Buscar Colegios"):
+    ubicaciones = ", ".join([ubicacion] + otras_ubicaciones) if otras_ubicaciones else ubicacion
     user_input = f"""
     Sexo: {sexo}
     Edad: {edad}
     Presupuesto anual: Q{presupuesto}
-    Ubicación: {ubicacion}
+    Ubicación principal: {ubicacion}
+    Otras ubicaciones de interés: {', '.join(otras_ubicaciones) if otras_ubicaciones else 'Ninguna'}
+    Distancia máxima aceptable: {distancia_maxima} km
     Bilingüe: {'Sí' if bilingue else 'No'}
     Transporte escolar: {'Sí' if transporte else 'No'}
     Orientación religiosa: {religion if religion != "Otro" else otra_religion}
@@ -76,7 +99,7 @@ if st.button("Buscar Colegios"):
         st.write(ai_recommendations)
     
     with st.spinner("Buscando información adicional..."):
-        search_query = f"Mejores colegios en {ubicacion}, departamento de Guatemala para estudiantes de {edad} años"
+        search_query = f"Mejores colegios en {ubicaciones}, departamento de Guatemala para estudiantes de {edad} años"
         if religion != "No es un factor importante":
             search_query += f" {religion}"
         search_results = search_schools(search_query)
