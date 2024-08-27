@@ -14,8 +14,8 @@ def get_ai_recommendations(user_input):
     }
     payload = {
         "model": "togethercomputer/llama-2-70b-chat",
-        "prompt": f"Basado en la siguiente información: {user_input}, recomienda 3 colegios en la ciudad de Guatemala que se ajusten a estos criterios. Proporciona una breve descripción de cada colegio y por qué lo recomiendas.",
-        "max_tokens": 500,
+        "prompt": f"Basado en la siguiente información: {user_input}, recomienda 3 colegios en el departamento de Guatemala que se ajusten a estos criterios. Proporciona una breve descripción de cada colegio, su ubicación específica dentro del departamento y por qué lo recomiendas.",
+        "max_tokens": 600,
         "temperature": 0.7,
     }
     response = requests.post(url, headers=headers, json=payload)
@@ -34,18 +34,29 @@ def search_schools(query):
     response = requests.post(url, headers=headers, json=payload)
     return response.json()
 
-st.title("Buscador de Colegios en Guatemala")
+st.title("Buscador de Colegios en el Departamento de Guatemala")
 
-st.write("Por favor, responde las siguientes preguntas para ayudarte a encontrar el colegio ideal para tu hijo/a en la ciudad de Guatemala.")
+st.write("Por favor, responde las siguientes preguntas para ayudarte a encontrar el colegio ideal para tu hijo/a en el departamento de Guatemala.")
 
 sexo = st.selectbox("Sexo del estudiante:", ["Masculino", "Femenino"])
 edad = st.number_input("Edad del estudiante:", min_value=3, max_value=18, value=6)
 presupuesto = st.slider("Presupuesto anual (en Quetzales):", 5000, 100000, 25000, step=1000)
-ubicacion = st.text_input("Ubicación preferida en la ciudad de Guatemala:")
+ubicacion = st.text_input("Ubicación preferida en el departamento de Guatemala (ej. Ciudad de Guatemala, Mixco, Villa Nueva, etc.):")
 bilingue = st.checkbox("¿Buscas un colegio bilingüe?")
+transporte = st.checkbox("¿Necesitas servicio de transporte escolar?")
+actividades_extra = st.multiselect("Actividades extracurriculares de interés:", 
+                                   ["Deportes", "Arte", "Música", "Tecnología", "Idiomas adicionales", "Otro"])
 
 if st.button("Buscar Colegios"):
-    user_input = f"Sexo: {sexo}, Edad: {edad}, Presupuesto anual: Q{presupuesto}, Ubicación: {ubicacion}, Bilingüe: {'Sí' if bilingue else 'No'}"
+    user_input = f"""
+    Sexo: {sexo}
+    Edad: {edad}
+    Presupuesto anual: Q{presupuesto}
+    Ubicación: {ubicacion}
+    Bilingüe: {'Sí' if bilingue else 'No'}
+    Transporte escolar: {'Sí' if transporte else 'No'}
+    Actividades extracurriculares: {', '.join(actividades_extra)}
+    """
     
     with st.spinner("Buscando recomendaciones..."):
         ai_recommendations = get_ai_recommendations(user_input)
@@ -53,7 +64,7 @@ if st.button("Buscar Colegios"):
         st.write(ai_recommendations)
     
     with st.spinner("Buscando información adicional..."):
-        search_query = f"Mejores colegios en {ubicacion}, Guatemala para estudiantes de {edad} años"
+        search_query = f"Mejores colegios en {ubicacion}, departamento de Guatemala para estudiantes de {edad} años"
         search_results = search_schools(search_query)
         
         st.subheader("Resultados de búsqueda adicionales:")
@@ -64,3 +75,12 @@ if st.button("Buscar Colegios"):
             st.write("---")
 
 st.write("Nota: Esta aplicación proporciona recomendaciones basadas en la información proporcionada. Te recomendamos investigar más a fondo y contactar directamente a los colegios para obtener información más precisa y actualizada.")
+
+# Mapa del departamento de Guatemala
+st.subheader("Mapa del Departamento de Guatemala")
+st.write("Para ayudarte a visualizar las ubicaciones, aquí tienes un mapa del departamento de Guatemala:")
+
+guatemala_map = """
+<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d123770.52750428112!2d-90.61540065!3d14.6417434!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8589a180655c3345%3A0x4a72c7815b867b25!2sDepartamento%20de%20Guatemala!5e0!3m2!1ses!2sgt!4v1661787672985!5m2!1ses!2sgt" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+"""
+st.components.v1.html(guatemala_map, height=500)
